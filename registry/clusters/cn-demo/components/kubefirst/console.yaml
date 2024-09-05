@@ -1,0 +1,72 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubefirst
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  project: default
+  source:
+    repoURL: https://charts.konstruct.io
+    targetRevision: 2.6.0
+    chart: kubefirst
+    helm:
+      values: |-
+        global:
+          cloudProvider: "civo"
+          clusterId: "kukapd"
+          clusterType: "mgmt"
+          domainName: "demo.civonetes.com"
+          gitProvider: "github"
+          installMethod: "helm"
+          kubefirstClient: "<KUBEFIRST_CLIENT>"
+          kubefirstTeam: "true"
+          kubefirstTeamInfo: "MrSimonEmms"
+          kubefirstVersion: "v2.6.0"
+          useTelemetry: ""
+        kubefirst-api-ee:
+          extraEnv:
+            IN_CLUSTER: "true"
+        kubefirst-api:
+          isClusterZero: "false"
+          extraEnv:
+            IN_CLUSTER: "true"
+            CLUSTER_NAME: "cn-demo"
+            ENTERPRISE_API_URL: "http://kubefirst-kubefirst-api-ee.kubefirst.svc.cluster.local"
+        console:
+          isClusterZero: "false"
+          domain: "demo.civonetes.com"
+          extraEnvSecrets:
+            CLIENT_ID:
+              name: kubefirst-console-secrets
+              key: client_id
+            SECRET_ID:
+              name: kubefirst-console-secrets
+              key: client_secret
+          ingress:
+            enabled: "true"
+            className: nginx
+            annotations:
+              cert-manager.io/cluster-issuer: "letsencrypt-prod"
+              
+              
+              
+            hosts:
+              - host: kubefirst.demo.civonetes.com
+                paths:
+                  - path: /
+                    pathType: Prefix
+            tls:
+              - secretName: kubefirst-tls
+                hosts:
+                  - kubefirst.demo.civonetes.com
+  destination:
+    name: in-cluster
+    namespace: kubefirst
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
